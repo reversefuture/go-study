@@ -31,4 +31,8 @@ func mainArr2() {
 	fmt.Println(arr4)
 
 	fmt.Println(len(arr2))
+
+	for index, value := range arr1 { // range 遍历
+		fmt.Printf("%d: %d", index, value)
+	}
 }

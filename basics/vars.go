@@ -7,9 +7,12 @@ import (
 // var
 // Can be used inside and outside of functions
 // Variable declaration and value assignment can be done separately
-// :=
+// := 短变量声明运算符
 // Can only be used inside functions
 // Variable declaration and value assignment cannot be done separately (must be done in the same line)
+// 要用 := 来声明变量以及给变量赋值。相同变量不能被声明两次（在相同作用域下）。 后面再给变量赋值时应该使用 =
+// 多个变量赋值的时候，只要其中有一个变量是新的，就可以使用:=。eg:
+//  name, power := "Goku", 9000
 
 func mainVar() {
 	var student1 string = "John" //type is string

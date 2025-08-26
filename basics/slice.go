@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
+	"sort"
 )
 
 /*
-Slice doesn't need length
-unlike arrays, the length of a slice can grow and shrink as you see fit.
 Slice：是一个引用类型，它包含三个部分：
 指向底层数组的指针（pointer）
 长度（len）
@@ -15,6 +15,30 @@ Slice：是一个引用类型，它包含三个部分：
 
 len() function - returns the length of the slice (the number of elements in the slice)
 cap() function - returns the capacity of the slice (the number of elements the slice can grow or shrink to)
+
+调整slice大小：
+1. slice again [start:end]
+2. append 是相当特别的。如果底层数组满了，它将创建一个更大的数组并且复制所有原切片中的值。Go 使用 2x 算法来增加数组长度
+scores = append(scores, 5) // 重新赋值以防创建底层新数组
+
+这有四种方式初始化一个切片：
+names := []string{"leto", "jessica", "paul"}
+checks := make([]bool, 10) // 需要用到切片具体索引时
+var names []string // 指向空的切片，用于当元素数量未知时与 append 连接
+scores := make([]int, 0, 20) // 知道最大长度
+
+[X:] 是 从 X 到结尾 的简写，然而 [:X] 是 从开始到 X 的简写。
+不像其他的语言，Go 不支持负数索引。如果我们想要切片中除了最后一个元素的所有值，可以这样写：
+scores := []int{1, 2, 3, 4, 5}
+scores = scores[:len(scores)-1]
+
+交换元素：
+  source[index], source[lastIndex] = source[lastIndex], source[index]
+
+删除元素：removeAtIndex
+
+拷贝：func copy(dst, src []Type) int
+copy(worst[2:4], scores[:5]) //[0 0 4 15 0]， 只复制到指定位置
 */
 
 func mainSlice1() {
@@ -106,4 +130,38 @@ func mainSlice6() {
 	fmt.Printf("numbersCopy = %v\n", numbersCopy)
 	fmt.Printf("length = %d\n", len(numbersCopy))   //5
 	fmt.Printf("capacity = %d\n", cap(numbersCopy)) //5
+}
+
+func mainSlice7() {
+	scores := []int{1, 2, 3, 4, 5}
+	slice := scores[2:4] // 切片不改变原来的scores
+	slice[0] = 999
+	fmt.Println(slice)  // [999 4]
+	fmt.Println(scores) //[1 2 999 4 5]
+
+	scores = removeAtIndex(scores, 2)
+	fmt.Println(scores) // [1 2 5 4]
+}
+
+func mainCopy() {
+	scores := make([]int, 100)
+	for i := 0; i < 100; i++ {
+		scores[i] = int(rand.Int31n(1000))
+	}
+	sort.Ints(scores)
+
+	worst := make([]int, 5)
+	// copy(worst, scores[:5]) //[4 5 17 31 35]
+	// copy(worst[2:4], scores[:5]) //[0 0 4 15 0]， 只复制到指定位置
+	// copy(worst[2:4], scores[:7]) //[0 0 10 15 0]
+	copy(worst, scores[:7]) //[13 24 37 52 65]
+	fmt.Println(worst)
+}
+
+// 不会保持顺序
+func removeAtIndex(source []int, index int) []int {
+	lastIndex := len(source) - 1
+	// 交换最后一个值和想去移除的值
+	source[index], source[lastIndex] = source[lastIndex], source[index]
+	return source[:lastIndex]
 }

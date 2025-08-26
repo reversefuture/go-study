@@ -103,3 +103,33 @@ func mainMap3() {
 		fmt.Printf("%v : %v, ", element, a[element])
 	}
 }
+
+/*
+当你需要将映射作为结构体字段的时候
+*/
+type Saiyan3 struct {
+	Name    string
+	Friends map[string]*Saiyan3
+}
+
+func mainMap() {
+	goku := &Saiyan3{
+		Name:    "Goku",
+		Friends: make(map[string]*Saiyan3, 10),
+	}
+	goku.Friends["krillin"] = &Saiyan3{
+		Name:    "krillin",
+		Friends: make(map[string]*Saiyan3),
+	}
+
+	// 像 make，这种特定用于映射和数组。我们可以定义为复合方式：
+	lookup := map[string]int{
+		"goku":  9001,
+		"gohan": 2044,
+	}
+	fmt.Println(lookup)
+	// 使用 for 组合 range 关键字迭代映射：
+	for key, value := range lookup {
+		fmt.Println(key, value)
+	}
+}
