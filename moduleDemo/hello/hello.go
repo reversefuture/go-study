@@ -27,7 +27,7 @@ func main1() {
 	fmt.Println(message)
 }
 
-func main() {
+func main2() {
 	// Set properties of the predefined Logger, including
 	// the log entry prefix and a flag to disable printing
 	// the time, source file, and line number.

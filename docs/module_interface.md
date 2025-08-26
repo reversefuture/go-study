@@ -1,3 +1,89 @@
+# 包
+当你想去命名一个包的时候，可以通过 package 关键字，提供一个值，而不是完整的层次结构（例如：「shopping」或者 「db」）。当你想去导入一个包的时候，你需要指定完整路径。
+
+循环引用:
+把公用代码抽取到models,utils等无外部依赖模块，然后导入:
+```go
+package db
+
+import (
+	"moduleDemo/shopping/models" // 同一个module内导入包总是从module名开始
+)
+
+func LoadItem2(id int) *models.Item {
+	return &models.Item{
+		Price: 9.001,
+	}
+}
+```
+
+## 可见性
+Go 用了一个简单的规则去定义什么类型和函数可以包外可见。如果类型或者函数名称以一个大写字母开始，它就具有了包外可见性。如果以一个小写字母开始，它就不可以。
+
+## go get
+> go get 包名@版本号
+也可以从github: 安装到 $GOPATH\pkg\mod
+> go get github.com/gin-gonic/gin@v1.9.1
+
+获取最新发布版:
+>go get github.com/gin-gonic/gin@latest
+
+安装 master 分支最新提交:
+>go get github.com/gin-gonic/gin@master
+
+查看$GOPATH:
+>cmd: echo $GOPATH
+>powershell: $env:GOPATH
+
+使用:
+```go
+import (
+  "github.com/mattn/go-sqlite3"
+)
+```
+
+安装所有包：
+>go get
+它将更新所有包
+>go get -u
+ 查看当前项目依赖版本
+>go list -m all
+
+# 接口
+接口是定义了合约但并没有实现的类型。举个例子：
+```go
+type Logger interface {
+  Log(message string)
+}
+```
+接口有助于将代码与特定的实现进行分离
+
+针对接口而不是具体实现的编程会使我们很轻松的修改（或者测试）任何代码都不会产生影响。
+```go
+type Server struct {
+  logger Logger
+}
+```
+或者是一个函数参数（或者返回值）：
+```go
+func process(logger Logger) {
+  logger.Log("hello!")
+}
+```
+在 Go 中，下面的情况是隐式发生的。如果你的结构体有一个函数名为 Log 且它有一个 string 类型的参数并没有返回值，那么这个结构体被视为 Logger 。这减少了使用接口的冗长：
+```go
+type ConsoleLogger struct {}
+func (l ConsoleLogger) Log(message string) { // 值接收者
+// func (l *ConsoleLogger) Log(...)  // 指针接收者
+  fmt.Println(message)
+}
+```
+这其实可以理解为：一个隐藏了第一个参数的函数，这个参数就是 (l ConsoleLogger)
+接收者让语法更像面向对象中的“对象.方法()”
+
+Go 倾向于使用小且专注的接口。Go 的标准库基本上由接口组成。像 io 包有一些常用的接口诸如 io.Reader ， io.Writer ， io.Closer 等。如果你编写的函数只需要一个能调用 Close() 的参数，那么你应该接受一个 io.Closer 而不是像 io 这样的父类型。
+
+
 #  module
 Create module: In the greetings directory
 >go mod init example.com/greetings
@@ -38,7 +124,6 @@ Run your application by simply typing its name:
 ## The **go install** command 
 compiles and installs the packages.
 
-
 # multi-module workspaces
 Initialize the module: in /workspaceDemo/hello
 >go mod init example.com/hello
@@ -46,6 +131,7 @@ Plz confirm hello/go.sum, hello/go.mod(验证下载一致性) exists so that /he
 
 Add a dependency on the golang.org/x/example/hello/reverse package by using go get.
 > go get golang.org/x/example/hello/reverse
+
 
 Initialize the workspace, in /workspaceDemo
 > go work init ./hello
