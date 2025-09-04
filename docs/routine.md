@@ -1,18 +1,23 @@
 # Go 并发编程
 Go 语言中的多线程编程主要通过 **goroutines** 和 **channels** 来实现。Go 语言没有直接的“线程”概念，而是使用 goroutines 来并发执行任务。
 Go语言的设计哲学是“不要通过共享内存来通信，而要通过通信来共享内存”
+调用完成后， 该 Go 协程也会安静地退出。
 
 ## routine调度
 ● 调度器：Go运行时包含一个调度器（scheduler），负责管理和调度goroutine。调度器会将goroutine分配到多个操作系统线程上执行，支持多核并行。
 ● M:N模型：Go使用M:N调度模型，即M个goroutine运行在N个操作系统线程上。调度器会根据负载情况动态调整goroutine的分配。
 ● 栈管理：Goroutine的栈是动态分配的，初始栈大小很小（通常为2KB），可以根据需要动态扩展和收缩
-
+```go
+ci := make(chan int)            // 整数无缓冲信道
+cj := make(chan int, 0)         // 整数无缓冲信道
+cs := make(chan *os.File, 100)  // 指向文件的指针的缓冲信道
+```
 ## chan共享内存
 ● 同步机制：Channel本身是**线程安全的**，通过内部的锁和条件变量实现同步。
 ● 阻塞和非阻塞：默认情况下，channel的发送和接收操作是**阻塞的**，直到有goroutine执行对应的接收或发送操作。可以通过select语句和default分支实现非阻塞操作。
 ● 缓冲机制：**Channel可以是有缓冲的或无缓冲的**。
 
-### 无缓冲channel，阻塞
+### 无缓冲channel，阻塞（同步通信）
 无缓冲channel的特点是：发送和接收操作必须同时进行，否则会阻塞。
 ● 发送操作：如果没有人接收数据，发送操作会阻塞。
 ● 接收操作：如果没有人发送数据，接收操作会阻塞。
@@ -33,8 +38,104 @@ select 语句用于监听多个channel的发送或接收操作， 通常需要�
 ![file](..\routine\testSelectForloop.go)
 - 在这个示例中，`select` 监听了两个通道 `ch1` 和 `ch2`，并**根据哪个通道先收到消息来执行相应的操作**。
 
+eg2: https://learnku.com/docs/effective-go/2020/concurrent/6249
+```go
+var sem = make(chan int, MaxOutstanding)
+func Serve(queue chan *Request) {
+    for req := range queue {
+        req := req // 为该Go协程创建 req 的新实例。用相同的名字获得了该变量的一个新的版本， 以此来局部地刻意屏蔽循环变量
+        sem <- 1
+        go func() {
+            process(req)
+            <-sem
+        }()
+    }
+}
+```
 
-## WaitGroup最佳实践
+## 固定数量协程
+另一种管理资源的好方法就是启动固定数量的 handle Go 协程，一起从请求信道中读取数据。Go 协程的数量限制了同时调用 process 的数量
+```go
+func handle(queue chan *Request) {
+    for r := range queue {
+        process(r)
+    }
+}
+
+func Serve(clientRequests chan *Request, quit chan bool) {
+    // 启动处理程序
+    for i := 0; i < MaxOutstanding; i++ {
+        go handle(clientRequests)
+    }
+    <-quit  // 等待通知退出。
+}
+```
+
+
+## 并行化
+- numCPU 常量值
+```go
+const numCPU = 4 // CPU 核心数
+
+func (v Vector) DoAll(u Vector) {
+    c := make(chan int, numCPU)  // 缓冲区是可选的，但明显用上更好
+    for i := 0; i < numCPU; i++ {
+        go v.DoSome(i*len(v)/numCPU, (i+1)*len(v)/numCPU, u, c)
+    }
+    // 排空信道。
+    for i := 0; i < numCPU; i++ {
+        <-c    // 等待任务完成
+    }
+    // 一切完成
+}
+```
+- 函数 [runtime.NumCPU](https://golang.org/pkg/runtime#NumCPU) 可以返回硬件 CPU 上的核心数量
+> var numCPU = runtime.NumCPU()
+-  runtime.GOMAXPROCS，设置当前最大可用的 CPU 数量，返回的是之前设置的最大可用的 CPU 数量。
+- 注意不要混淆并发（concurrency）和并行（parallelism）的概念：并发：多个任务在重叠的时间段内执行，但不一定是同时进行。 而并行则是为了效率在多 CPU 上平行地进行计算。尽管 Go 的并发特性能够让某些问题更易构造成并行计算， 但 Go 仍然是种并发而非并行的语言
+- 并发是关于“如何设计系统来处理多个事情”，而并行是关于“如何用更多资源同时做多个事情”。
+
+## 漏桶缓存区限流设计
+这里有个提取自 RPC 包的例子。 客户端 Go 协程从某些来源，可能是网络中循环接收数据。为避免分配和释放缓冲区， 它保存了一个空闲链表，使用一个带缓冲信道表示。若信道为空，就会分配新的缓冲区。 一旦消息缓冲区就绪，它将通过 serverChan 被发送到服务器。
+```go
+var freeList = make(chan *Buffer, 100)
+var serverChan = make(chan *Buffer)
+
+func client() {
+    for {
+        var b *Buffer
+        // 若缓冲区可用就用它，不可用就分配个新的。
+        select {
+        case b = <-freeList:
+            // 获取一个，不做别的。
+        default:
+            // 非空闲，因此分配一个新的。
+            b = new(Buffer)
+        }
+        load(b)              // 从网络中读取下一条消息。
+        serverChan <- b      // 发送至服务器。
+    }
+}
+```
+服务器从客户端循环接收每个消息，处理它们，并将缓冲区返回给空闲列表。
+```go
+func server() {
+    for {
+        b := <-serverChan    // 等待工作。
+        process(b)
+        // 若缓冲区有空间就重用它。
+        select {
+        case freeList <- b:
+            // 将缓冲区放到空闲列表中，不做别的。
+        default:
+            // 空闲列表已满，保持就好。
+        }
+    }
+}
+```
+客户端试图从 freeList 中获取缓冲区；若没有缓冲区可用， 它就将分配一个新的。服务器将 b 放回空闲列表 freeList 中直到列表已满，此时缓冲区将被丢弃，并被垃圾回收器回收。（select 语句中的 default 子句在没有条件符合时执行，这也就意味着 selects 永远不会被阻塞。）依靠带缓冲的信道和垃圾回收器的记录， 我们仅用短短几行代码就构建了一个限流漏桶。
+
+## WaitGroup最佳实践!!
 ![file](..\routine\testWaitGroupPointer.go)
 
 ### 补充：
@@ -54,6 +155,7 @@ go func() {
 ```
 go 关键字会启动一个新的goroutine，并在其中执行这个匿名函数
 如果没有() 代码会阻塞在 <-ch1，因为没有任何数据发送到 ch1。
+在 Go 中，匿名函数都是闭包：其实现在保证了**函数内引用变量的生命周期与函数的活动时间相同**。
 
 ---
 ### 输出结果

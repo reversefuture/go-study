@@ -71,6 +71,10 @@ func mainFor2() {
 		}
 		fmt.Println(i)
 	}
+	// 带初始化的 if
+	if _, err := process2(); err != nil {
+		fmt.Print(err)
+	}
 }
 
 // uses range to iterate over an array and print both the indexes and the values at each (

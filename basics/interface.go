@@ -2,9 +2,19 @@ package main
 
 import (
 	"fmt"
+	"sort"
 )
 
-// Logger 接口
+// 接口成员必须是 方法签名（method signatures）或者 泛型约束
+type MyFloat interface {
+	float64 | float32 // 表示可以是 float64 或 float32
+}
+
+// 使用泛型约束
+func PrintFloat[T MyFloat](v T) {
+	fmt.Println(v)
+}
+
 type Logger interface {
 	Log(message string)
 }
@@ -39,7 +49,7 @@ func process(logger Logger) {
 	logger.Log("处理中...")
 }
 
-func main() {
+func mainInterface() {
 	// 创建日志实例
 	logger := &StdLogger{} // *StdLogger 实现了 Logger 和 Logger2， 指针类型，共用
 
@@ -57,6 +67,7 @@ func main() {
 
 	// 测试多态
 	process(server.logger)
+
 }
 
 // LOG: Server is running
@@ -78,4 +89,30 @@ func (l ConsoleLogger) Log(message string) {
 
 func (l *ConsoleLogger) SetPrefix(p string) {
 	l.prefix = p // 修改字段 → 必须用指针接收者
+}
+
+type Sequence []int
+
+// sort.Interface所需的方法。
+func (s Sequence) Len() int {
+	return len(s)
+}
+func (s Sequence) Less(i, j int) bool {
+	return s[i] < s[j]
+}
+func (s Sequence) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+// Copy方法返回Sequence的复制
+func (s Sequence) Copy() Sequence {
+	copy := make(Sequence, 0, len(s))
+	return append(copy, s...)
+}
+
+// 打印方法-在打印之前对元素进行排序
+func (s Sequence) String() string {
+	s = s.Copy()
+	sort.IntSlice(s).Sort() // IntSlice attaches the methods of Interface to []int
+	return fmt.Sprint([]int(s))
 }

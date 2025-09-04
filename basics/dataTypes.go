@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"unicode/utf8"
 )
 
 /**
@@ -63,4 +64,19 @@ func mainString() {
 	s2 = "World"
 	fmt.Println((s1))
 	fmt.Println((s2))
+}
+
+func mainString2() {
+	stra := "the spice must flow" // 字符串是不可变的
+	byts := []byte(stra)          // 实际上创建了数据的副本
+	strb := string(byts)          //实际上创建了数据的副本
+	fmt.Println(strb)
+
+	fmt.Println(int64(33))
+
+	s := "椒"
+	fmt.Println(len(s))                    //3
+	fmt.Println(len([]byte(s)))            //3
+	fmt.Println(len([]rune(s)))            // 输出: 1 ✅ 正确的“字符个数”
+	fmt.Println(utf8.RuneCountInString(s)) // 输出: 1 ✅ 推荐（更高效，不分配内存）
 }

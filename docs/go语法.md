@@ -272,3 +272,51 @@ dog := Dog{
 }
 fmt.Println(dog.Legs) // 4
 ```
+
+# for
+在 Go 中，for 循环的循环变量是复用的，也就是说：
+
+- 它是一个在循环作用域内声明的变量。
+- 每次迭代时，不是创建新变量，而是将新值赋给同一个变量。
+- 所以它的内存地址在整个循环过程中保持不变（除非你显式用 := 创建新作用域）。
+
+> for i, v := range values {}
+Go 编译器在进入循环前就分配好了 i 和 v 的内存空间
+
+以下代码会出问题呢：
+- req 是一个被复用的局部变量。
+- 所有 goroutine 都闭包捕获了同一个变量 req 的地址。
+- 当循环继续，req 被下一次的值覆盖时，已经启动的 goroutine 可能看到更新后的值
+```go
+for req := range queue {
+    go func() {
+        process(req) // 捕获的是变量 req 的引用
+    }()
+}
+```
+解决1：，就是将 req 的值作为实参传入到该 Go 协程的闭包中：
+```go
+func Serve(queue chan *Request) {
+    for req := range queue {
+        sem <- 1
+        go func(req *Request) {
+            process(req)
+            <-sem
+        }(req)
+    }
+}
+```
+解决2：就是以相同的名字创建新的变量，如例中所示：
+```go
+func Serve(queue chan *Request) {
+    for req := range queue {
+        req := req // 为该Go协程创建 req 的新实例。用相同的名字获得了该变量的一个新的版本， 以此来局部地刻意屏蔽循环变量
+        sem <- 1
+        go func() {
+            process(req)
+            <-sem
+        }()
+    }
+}
+```
+
