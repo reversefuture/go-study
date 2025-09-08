@@ -11,7 +11,7 @@ var addr = flag.String("addr", ":1718", "http service address") // Q=17, R=18
 
 var templ = template.Must(template.New("qr").Parse(templateStr))
 
-func main() {
+func mainHtml() {
 	flag.Parse()
 	http.Handle("/", http.HandlerFunc(QR))
 	err := http.ListenAndServe(*addr, nil)

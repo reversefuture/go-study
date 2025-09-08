@@ -8,16 +8,10 @@ if owner != user {
 }
 ```
 ## interface
-按照约定，只包含一个方法的接口应当以该方法的名称加上 - er 后缀来命名，如 Reader、Writer、 Formatter、CloseNotifier 等
+按照约定，**只包含一个方法的接口应当以该方法的名称加上 - er 后缀来命名**，如 Reader、Writer、 Formatter、CloseNotifier 等
 请将字符串转换方法命名为 String 而非 ToString。
 
 # 分号
-规则是这样的：若在新行前的最后一个标记为标识符（包括 int 和 float64 这类的单词）、数值或字符串常量之类的基本字面或以下标记之一
-```go
-break continue fallthrough return ++ -- ) }
-```
-则词法分析将始终在该标记后面插入分号
-
 分号也可在闭括号之前直接省略
 
 警告：无论如何，你都不应将一个控制结构（if、for、switch 或 select）的左大括号放在下一行
@@ -43,7 +37,7 @@ if err != nil {
     return err
 }
 
-defer func() {
+defer func() { // 延时在函数快结束关闭f
     closeErr := f.Close()
     if err == nil { // 只有在没有其他错误时才返回 Close 的错误
         err = closeErr // 覆盖原来err
@@ -108,7 +102,7 @@ for i, j := 0, len(a)-1; i < j; i, j = i+1, j-1 {
 }
 ```
 # Switch
-Use with logical operators:
+Use switch with logical operators:
 ```go
 func unhex(c byte) byte {
     switch {
@@ -134,23 +128,23 @@ func shouldEscape(c byte) bool {
 ```
 
 由于 if 和 switch 可接受初始化语句， 因此用它们来设置局部变量十分常见。
-
+```go
 if err := file.Chmod(0664); err != nil {
     log.Print(err)
     return err
 }
-
+```
 # 函数
 ## 多返回值
 ## 命名结果参数
 Go 函数的返回值或结果 “形参” 可被命名，并作为常规变量使用，就像传入的形参一样。 命名后，一旦该函数开始执行，它们就会被初始化为与其类型相应的零值； 若该函数执行了一条不带实参的 return 语句，则结果形参的当前值将被返回。
 
 ## 延迟 
-Go 的 defer 语句用于预设一个函数调用（即推迟执行函数）， 该函数会**在执行 defer 的函数返回之前立即执行**
+Go 的 defer 语句用于**预设一个函数调用（即推迟执行函数）**， 该函数会**在执行 defer 的函数返回之前立即执行**
 
 推迟诸如 Close 之类的函数调用有两点好处：第一， 它能确保你不会忘记关闭文件。如果你以后又为该函数添加了新的返回路径时， 这种情况往往就会发生。第二，它意味着 “关闭” 离 “打开” 很近， 这总比将它放在函数结尾处要清晰明了。
 ```go
-// 内容返回文件的内容作为字符串。
+// 返回文件的内容作为字符串。
 func Contents(filename string) (string, error) {
     f, err := os.Open(filename)
     if err != nil {
@@ -175,24 +169,18 @@ func Contents(filename string) (string, error) {
 ```
 
 ### 参数实时求出但是函数LIFO执行
-被推迟函数的实参（如果该函数为方法则还包括接收者）**在推迟执行时就会求值**， 而不是在调用执行时才求值。这样不仅无需担心变量值在函数执行时被改变， 同时还意味着单个已推迟的调用可推迟多个函数的执行。
+被推迟函数的**实参（如果该函数为方法则还包括接收者）在推迟执行时就会求值**， 而不是在调用执行时才求值。这样不仅无需担心变量值在函数执行时被改变， 同时还意味着单个已推迟的调用可推迟多个函数的执行。
+
 ```go
 for i := 0; i < 5; i++ {
-    defer fmt.Printf("%d ", i)
+    defer fmt.Printf("%d ", i) 
 }
 ```
 **被推迟的函数按照后进先出（LIFO）的顺序执行**，因此以上代码在函数返回时会打印 4 3 2 1 0
 
-这是一个非常经典且重要的 Go 语言问题，我们来**详细解释 `defer` 语句中函数参数的求值时机**，以及它与“推迟执行函数”的关系。
-
----
-
 ## 🔍 核心结论（先记住）：
-
 > ✅ **`defer` 后面函数的实参（arguments）在 `defer` 语句执行时（即注册 `defer` 时）就会求值**，  
 > ❌ 但函数本身的执行被推迟到外层函数 `return` 之前。
-
----
 
 ## 🧩 举个例子说明
 
@@ -221,24 +209,6 @@ deferred: 10
 - 虽然后面 `x = 20`，但 `defer` 已经记住了当时的值。
 - `defer` 函数在 `main` 函数结束前才执行，但参数早已确定。
 
----
-
-## 📌 更清晰的例子：参数求值 vs 函数执行
-
-```go
-func f() {
-    i := 1
-    defer fmt.Println(i) // 输出：1，不是 2
-    i++
-    return
-}
-```
-
-- `defer fmt.Println(i)` 执行时，`i` 是 `1`，所以参数被求值为 `1`。
-- `i++` 不会影响已经求值的参数。
-- 最终输出：`1`
-
----
 
 ## 🔄 如果你想“延迟求值”，怎么办？
 
@@ -249,7 +219,7 @@ func f2() {
 	i := 1
 	defer func() { //通过闭包引用变量, 闭包真实执行时i变了
 		fmt.Println(i) // 输出：2
-	}()
+	}()// 如果这里改成(i)那就又变回参数实时求值了，输出1
 	i++
 	return
 }

@@ -3,28 +3,84 @@ Go 语言中的多线程编程主要通过 **goroutines** 和 **channels** 来�
 Go语言的设计哲学是“不要通过共享内存来通信，而要通过通信来共享内存”
 调用完成后， 该 Go 协程也会安静地退出。
 
+## 协程
+在 go 关键字后面加一个函数，就可以创建一个线程，函数可以为已经写好的函数，也可以是匿名函数。
+```go
+func mainCon() {
+	fmt.Println("main start")
+
+	go func() {
+		fmt.Println("goroutine")
+	}()
+  // 没有Sleep主程序会立马执行完退出。因为主进程在退出前 协程 才会有机会去执行（主进程在退出前不会等待全部 协程 执行完毕）
+	// time.Sleep(1 * time.Second) // 让主线程休眠 1 秒钟，并发执行goroutine
+
+	fmt.Println("main end")
+}
+
+// main start
+// main end
+```
+- 为什么没有输出 goroutine
+- 并发是不同的代码块交替执行，也就是交替可以做不同的事情。
+- 并行是不同的代码块同时执行，也就是同时可以做不同的事情。
+-  Go 语言的线程是并发机制，不是并行机制。main 函数是一个主线程，是因为主线程执行太快了，子线程还没来得及执行，所以看不到输出。
+- 现在time.Sleep让主线程休眠 1 秒钟，再试试goroutine成功执行。
+
 ## routine调度
 ● 调度器：Go运行时包含一个调度器（scheduler），负责管理和调度goroutine。调度器会将goroutine分配到多个操作系统线程上执行，支持多核并行。
 ● M:N模型：Go使用M:N调度模型，即M个goroutine运行在N个操作系统线程上。调度器会根据负载情况动态调整goroutine的分配。
 ● 栈管理：Goroutine的栈是动态分配的，初始栈大小很小（通常为2KB），可以根据需要动态扩展和收缩
+
+# channel 通道
+并发编程的最大挑战源于数据的共享。 唯一的共享状态是通道
+通道是协程之间用于传递数据的共享管道。换而言之，一个协程可以通过一个通道向另外一个协程传递数据。因此，在任意时间点，只有一个协程可以访问数据。
 ```go
-ci := make(chan int)            // 整数无缓冲信道
-cj := make(chan int, 0)         // 整数无缓冲信道
+// 声明不带缓冲的通道
+ch1 := make(chan string)
+
+// 声明带10个缓冲的通道
+ch2 := make(chan string, 10)
+
+// 声明只读通道
+ch3 := make(<-chan string)
+
+// 声明只写通道
+ch4 := make(chan<- string)
+
 cs := make(chan *os.File, 100)  // 指向文件的指针的缓冲信道
+
+// 作为函数参数
+func worker(c chan int) { ... }
+
+// 写入 chan
+ch1 := make(chan string, 10)
+ch1 <- "a"
+
+// 读取 chan
+val, ok := <- ch1
+// 或
+val := <- ch1
+
+// 关闭 chan
+close(chan)
 ```
+eg:
+![file](../routine/forChan.go)
+
 ## chan共享内存
 ● 同步机制：Channel本身是**线程安全的**，通过内部的锁和条件变量实现同步。
 ● 阻塞和非阻塞：默认情况下，channel的发送和接收操作是**阻塞的**，直到有goroutine执行对应的接收或发送操作。可以通过select语句和default分支实现非阻塞操作。
 ● 缓冲机制：**Channel可以是有缓冲的或无缓冲的**。
 
 ### 无缓冲channel，阻塞（同步通信）
-无缓冲channel的特点是：发送和接收操作必须同时进行，否则会阻塞。
+不带缓冲的通道，进和出都会阻塞。
 ● 发送操作：如果没有人接收数据，发送操作会阻塞。
 ● 接收操作：如果没有人发送数据，接收操作会阻塞。
 ![file](..\routine\testChanBLocked.go)
 
 ### 有缓冲channel，阻塞
-有缓冲channel的特点是：发送操作在缓冲区未满时不会阻塞，接收操作在缓冲区不为空时不会阻塞。
+带缓冲的通道，进一次长度 +1，出一次长度 -1。发送操作在缓冲区未满时不会阻塞，接收操作在缓冲区不为空时不会阻塞。
 ● 发送操作：如果缓冲区已满，发送操作会阻塞。
 ● 接收操作：如果缓冲区为空，接收操作会阻塞。
 ![file](..\routine\testChanBLocked.go)
@@ -53,6 +109,53 @@ func Serve(queue chan *Request) {
 }
 ```
 
+## Select
+语法上，select 看起来有一点像 switch。使用它，我们提供当通道不能发送数据的时候处理代码
+接下来，改变我们的 for 循环：
+```go
+// 每个 worker 每隔 50ms 尝试向 c 发送一个随机数，如果 c 已满（无法立即发送），就走 default 分支并打印 "dropped"
+func (w *Worker) selectProcess(c chan int) {
+	for {
+		select {
+		case c <- rand.Int(): // 如果通道已满或即使未满但调度不及时，case 分支不能立即执行，就会走 default。
+		default: //不等待，打印 "dropped"。
+			fmt.Println("dropped")
+		}
+		time.Sleep(time.Millisecond * 50) //休息：同步、阻塞当前 goroutine 的操作。 在这期间，该 goroutine 进入等待状态，不会被调度执行，相当于yield。
+	}
+}
+```
+select 的主要目的是管理多个通道，select 将阻塞直到第一个通道可用。如果没有通道可用，如果提供了 default ，那么他就会被执行。如果多个通道都可用了，随机挑选一个。
+
+## 超时
+我们看过了缓冲消息以及简单地将他们丢弃。另一个通用的选择是去超时。我们将阻塞一段时间，但不会永远。
+
+用time.After修改发送器：
+![image](../basics/concurrent.go)
+```go
+func (w *Worker) selectProcessTimeout(c chan int) {
+	// 尝试发送数据到 c，等待最多 100ms，如果在这期间第一个 case 还不能执行，就走超时分支。
+	for {
+		select {
+		case c <- rand.Int():
+		case t := <-time.After(time.Millisecond * 100): // After返回一个t: chan time.Time，100ms 后会向这个通道写入当前时间。
+			// case <-time.After(time.Millisecond * 100) // 不用t接收
+			fmt.Println("timed out at", t)
+		}
+		time.Sleep(time.Millisecond * 50)
+	}
+}
+```
+> 第一个可用的通道被选择。
+> 如果多个通道可用，随机选择一个。
+> 如果没有通道可用，default 情况将被执行。
+> 如果没有 default，select 将会阻塞。
+
+## 最后
+话虽如此，我仍然广泛使用 sync 和 sync / atomic 包中的各种同步原语。我觉得比较重要的是通过使用这两种方式比较舒适。我建议你首先关注通道，但是当你遇到一个需要短暂锁的简单示例时，请考虑使用互斥锁或读写互斥锁。
+
+
+# 并发优化
 ## 固定数量协程
 另一种管理资源的好方法就是启动固定数量的 handle Go 协程，一起从请求信道中读取数据。Go 协程的数量限制了同时调用 process 的数量
 ```go
@@ -71,8 +174,7 @@ func Serve(clientRequests chan *Request, quit chan bool) {
 }
 ```
 
-
-## 并行化
+## 并行化最大利用cpu
 - numCPU 常量值
 ```go
 const numCPU = 4 // CPU 核心数
@@ -391,13 +493,14 @@ case <-ctx.Done():
 根据具体的需求，可以选择合适的工具来监听事件或信号。
 
 ## defer
-`defer` 是 Go 语言中的一个关键字，用于延迟执行某个函数或方法，直到包含它的函数返回为止。`defer` 通常用于资源释放、日志记录、错误处理等场景。
+`defer` 是 Go 语言中的一个关键字，用于延迟执行某个函数或方法，它在声明时不会立刻去执行，而是在函数 return 后去执行的。`defer` 通常用于资源释放、日志记录、错误处理等场景。
 
 ### 注意事项
 - `defer` 语句的执行顺序是“后进先出”（LIFO），即最后声明的 `defer` 语句会最先执行。
 - `defer` 语句中的参数在声明时就已经被求值，而不是在执行时。
 
 ### 完整实例
+![file](../basics/defer.go)
 
 
 ### 1. **资源释放**

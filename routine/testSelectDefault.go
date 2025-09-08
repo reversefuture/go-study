@@ -31,9 +31,9 @@ func mainSelect1() {
 func mainSelect2() {
 	ch := make(chan int, 1) // 有缓冲channel，缓冲区大小为1
 
-	// 非阻塞接收
+	// 非阻塞接收，ch无数据
 	select {
-	case val := <-ch:
+	case val := <-ch: // short variable declaration
 		fmt.Println("Received:", val)
 	default:
 		fmt.Println("Receive failed")
@@ -42,7 +42,7 @@ func mainSelect2() {
 	// 发送数据
 	ch <- 42
 
-	// 再次尝试非阻塞接收
+	// 再次尝试非阻塞接收,ch有数据
 	select {
 	case val := <-ch:
 		fmt.Println("Received:", val)

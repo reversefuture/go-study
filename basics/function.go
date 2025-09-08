@@ -1,9 +1,23 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
+	"sort"
 	"strings"
 )
+
+/*
+传递参数时，将参数复制一份传递到函数中，对参数进行调整后，不影响参数值。
+
+Go 语言默认是值传递。
+1. 引用传递
+传递参数时，将参数的地址传递到函数中，对参数进行调整后，影响参数值。
+func toJson (res *Result){}
+toJson(&res)
+
+*/
 
 // Function Return Example
 func myFunction(x int, y int) int {
@@ -29,16 +43,16 @@ func myFunction3(x int, y string) (result int, txt1 string) {
 	return // result, txt1 is omitted
 }
 
-// recursion
-func testcount(x int) int {
-	if x == 11 { // exit condition
+// recursion 递归
+func testrecursion(x int) int {
+	if x == 6 { // exit condition
 		return 0
 	}
 	fmt.Println(x)
-	return testcount(x + 1) // call self
+	return testrecursion(x + 1) // call self
 }
 
-func mainFunc() {
+func mainFunc0() {
 	fmt.Println(myFunction(1, 2))
 	fmt.Println(myFunction2(1, 2))
 	a, b := myFunction3(5, "Hello")
@@ -46,7 +60,9 @@ func mainFunc() {
 	_, b2 := myFunction3(3, "World") // _ 丢弃一个值
 	fmt.Println(b2)
 
-	testcount(4)
+	testrecursion(4)
+
+	fmt.Println(MD5("abc")) // 900150983cd24fb0d6963f7d28e17f72
 }
 
 // 函数类型，可以用在任何地方 -- 作为字段类型，参数或者返回值
@@ -113,4 +129,33 @@ func ReadFull(r *strings.Reader, buf []byte) (n int, err error) {
 		buf = buf[nr:]
 	}
 	return
+}
+
+func MD5(str string) string {
+	s := md5.New()
+	s.Write([]byte(str))
+	return hex.EncodeToString(s.Sum(nil))
+}
+
+// 生成签名
+func createSign(params map[string]interface{}) string {
+	var key []string
+	var str = ""
+	for k := range params {
+		key = append(key, k)
+	}
+	sort.Strings(key)
+	for i := 0; i < len(key); i++ {
+		if i == 0 {
+			str = fmt.Sprintf("%v=%v", key[i], params[key[i]])
+		} else {
+			str = str + fmt.Sprintf("&xl_%v=%v", key[i], params[key[i]])
+		}
+	}
+	// 自定义密钥
+	var secret = "123456789"
+
+	// 自定义签名算法
+	sign := MD5(MD5(str) + MD5(secret))
+	return sign
 }

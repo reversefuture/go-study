@@ -1,13 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
 /*
-Maps are used to store data values in key:value pairs.
+Map 集合是无序的 key-value 数据结构。
 
-Each element in a map is a key:value pair.
+Map 集合中的 key / value 可以是任意类型，但所有的 key 必须属于同一数据类型，所有的 value 必须属于同一数据类型，key 和 value 的数据类型可以不相同。
 
 A map is an unordered and changeable collection that does not allow duplicates.
 
@@ -16,8 +17,6 @@ The length of a map is the number of its elements. You can find it using the len
 The default value of a map is nil.
 
 Maps hold references to an underlying hash table.
-
-Go has multiple ways for creating maps.
 */
 
 /*
@@ -40,6 +39,38 @@ These types are invalid because the equality operator (==) is not defined for th
 The map values can be any type.
 */
 
+// 生成 JSON
+func mainMapJson() {
+	res := make(map[string]interface{})
+	res["code"] = 200
+	res["msg"] = "success"
+	res["data"] = map[string]interface{}{ //嵌套map
+		"username": "Tom",
+		"age":      "30",
+		"hobby":    []string{"读书", "爬山"},
+	}
+	fmt.Println("map data :", res)
+
+	//序列化
+	jsons, errs := json.Marshal(res) //return byte[]
+	if errs != nil {
+		fmt.Println("json marshal error:", errs)
+	}
+	fmt.Println("")
+	fmt.Println("--- map to json ---")
+	fmt.Println("json data :", string(jsons))
+
+	//反序列化
+	res2 := make(map[string]interface{})
+	errs = json.Unmarshal([]byte(jsons), &res2)
+	if errs != nil {
+		fmt.Println("json marshal error:", errs)
+	}
+	fmt.Println("")
+	fmt.Println("--- json to map ---")
+	fmt.Println("map data :", res2)
+}
+
 func mainMap1() {
 	// var a = map[string]string{"brand": "Ford", "model": "Mustang", "year": "1964"}
 	// b := map[string]int{"Oslo": 1, "Bergen": 2, "Trondheim": 3, "Stavanger": 4}
@@ -55,7 +86,7 @@ func mainMap1() {
 	// a is no longer empty
 	fmt.Println(len(a))
 
-	b := make(map[string]int)
+	b := map[string]int{}
 	b["Oslo"] = 1
 	b["Bergen"] = 2
 	b["Trondheim"] = 3
@@ -65,13 +96,9 @@ func mainMap1() {
 	fmt.Printf("b\t%v\n", b)
 
 	val1, ok1 := a["brand"] // Checking for existing key and its value
-	val2, ok2 := a["color"] // Checking for non-existing key and its value
-	val3, ok3 := a["model"] // Checking for existing key and its value
 	_, ok4 := a["model"]    // Only checking for existing key and not its value
 
 	fmt.Println(val1, ok1)
-	fmt.Println(val2, ok2)
-	fmt.Println(val3, ok3)
 	fmt.Println(ok4)
 
 	delete(a, "year") // remove element

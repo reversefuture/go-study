@@ -1,16 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
 /*
-go without OPP.
-While arrays are used to store multiple values of the same data type into a single variable, structs are used to store multiple values of different data types into a single variable.
-字段可以是任何类型：
-type Saiyan struct {   Name string   Power int   Father *Saiyan }
-然后我们通过下面的方式初始化：
-gohan := &Saiyan{   Name: "Gohan",   Power: 1000,   Father: &Saiyan {     Name: "Goku",     Power: 9001,     Father: nil,   }, }
+结构体是将零个或多个任意类型的变量，组合在一起的聚合数据类型，也可以看做是数据的集合。
 
 尽管缺少构造器，Go 语言却有一个内置的 new 函数，使用它来分配类型所需要的内存。 new(X) 的结果与 &X{} 相同。
 goku := new(Saiyan)
@@ -19,55 +15,28 @@ goku := &Saiyan{}
 */
 
 type Person struct {
-	name   string
-	age    int
-	job    string
-	salary int
+	Name string
+	Age  int
 }
 
-func mainStruct() {
-	var pers1 Person
+func mainStruct1() {
+	var p1 Person
+	p1.Name = "Tom"
+	p1.Age = 30
+	fmt.Println("p1 =", p1)
 
-	// Pers1 specification
-	pers1.name = "Hege"
-	pers1.age = 45
-	pers1.job = "Teacher"
-	pers1.salary = 6000
+	var p2 = Person{Name: "Burke", Age: 31}
+	fmt.Println("p2 =", p2)
 
-	// Pers2 specification
-	pers2 := Person{
-		name:   "Cecilie",
-		age:    24,
-		job:    "Marketing",
-		salary: 4500,
-	}
+	p3 := Person{Name: "Aaron", Age: 32}
+	fmt.Println("p2 =", p3)
 
-	pers3 := Person{} // properties will have default values of each type
-	pers4 := Person{"bob", 22, "Tester", 9000}
-
-	// Access and print Pers1 info
-	fmt.Println("Name: ", pers1.name)
-	fmt.Println("Age: ", pers1.age)
-	fmt.Println("Job: ", pers1.job)
-	fmt.Println("Salary: ", pers1.salary)
-
-	// Access and print Pers2 info
-	fmt.Println("Name: ", pers2.name)
-	fmt.Println("Age: ", pers2.age)
-	fmt.Println("Job: ", pers2.job)
-	fmt.Println("Salary: ", pers2.salary)
-	// Print Pers1 info by calling a function
-	printPerson(pers1)
-	printPerson(pers2)
-	printPerson(pers3)
-	printPerson(pers4)
-}
-
-func printPerson(pers Person) {
-	fmt.Println("Name: ", pers.name)
-	fmt.Println("Age: ", pers.age)
-	fmt.Println("Job: ", pers.job)
-	fmt.Println("Salary: ", pers.salary)
+	//匿名结构体
+	p4 := struct {
+		Name string
+		Age  int
+	}{Name: "匿名", Age: 33}
+	fmt.Println("p4 =", p4)
 }
 
 // 结构体没有构造器。但是，你可以创建一个返回所期望类型的实例的函数
@@ -85,3 +54,60 @@ func NewSaiyan2(name string, power int) Saiyan {
 		Power: power,
 	}
 }
+
+type Result struct {
+	Code    int    `json:"code"`
+	Message string `json:"msg"`
+}
+
+// 生成 JSON
+func mainJson1() {
+	var res Result
+	res.Code = 200
+	res.Message = "success"
+
+	//序列化
+	jsons, errs := json.Marshal(res)
+	if errs != nil {
+		fmt.Println("json marshal error:", errs)
+	}
+	fmt.Println("json data :", string(jsons))
+
+	//反序列化
+	var res2 Result
+	errs = json.Unmarshal(jsons, &res2)
+	if errs != nil {
+		fmt.Println("json unmarshal error:", errs)
+	}
+	fmt.Println("res2 :", res2)
+}
+
+// json data : {"code":200,"msg":"success"}
+// res2 : {200 success}
+
+// 改变数据
+func mainJosn2() {
+	var res Result
+	res.Code = 200
+	res.Message = "success"
+	toJson(&res)
+
+	setData(&res)
+	toJson(&res)
+}
+
+func setData(res *Result) { // 修改json必须要指针！
+	res.Code = 500
+	res.Message = "fail"
+}
+
+func toJson(res *Result) {
+	jsons, errs := json.Marshal(res) // 序列化
+	if errs != nil {
+		fmt.Println("json marshal error:", errs)
+	}
+	fmt.Println("json data :", string(jsons))
+}
+
+// json data : {"code":200,"msg":"success"}
+// json data : {"code":500,"msg":"fail"}

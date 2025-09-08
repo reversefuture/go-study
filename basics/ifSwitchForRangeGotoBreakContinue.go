@@ -15,6 +15,9 @@ func mainIf() {
 	}
 }
 
+// 默认每个 case 带有 break
+// case 中可以有多个选项
+// fallthrough 不跳出，并执行下一个 case
 func mainSitwch1() {
 	day := 8
 
@@ -54,6 +57,7 @@ func mainSwitch2() {
 	}
 }
 
+// continue跳过本次循环，只能用于 for。
 func mainFor1() {
 	for i := 0; i < 5; i++ {
 		if i == 3 {
@@ -64,6 +68,7 @@ func mainFor1() {
 	}
 }
 
+// break跳出当前循环，可⽤于 for、switch、select。
 func mainFor2() {
 	for i := 0; i <= 100; i += 10 {
 		if i == 30 {
@@ -75,9 +80,14 @@ func mainFor2() {
 	if _, err := process2(); err != nil {
 		fmt.Print(err)
 	}
+	// 多个参数初始化
+	for i, j, k := 1, 2, 3; i < 2; i++ {
+		fmt.Println(i, j, k) // 1 2 3
+	}
 }
 
 // uses range to iterate over an array and print both the indexes and the values at each (
+// Range can be used on array,slice,string, string(v is the rune code)，Channel(till chan close),
 func mainRange() {
 	fruits := [3]string{"apple", "orange", "banana"}
 	for idx, val := range fruits {
@@ -95,4 +105,42 @@ func mainRange() {
 	for i := 0; i <= len(fruits); i += 1 {
 		fmt.Println(fruits[i])
 	}
+
+	s := "你好, world"
+	for i, r := range s {
+		fmt.Printf("字节索引=%d, 字符='%c', unicode码点=%d\n", i, r, r)
+	}
+
+	ch := make(chan int, 3)
+	ch <- 1
+	ch <- 2
+	ch <- 3
+	close(ch)
+
+	for v := range ch {
+		fmt.Println(v) //
+	}
 }
+
+// 改变函数内代码执行顺序，不能跨函数使用。
+func mainGoto() {
+	fmt.Println("begin")
+
+	for i := 1; i <= 10; i++ {
+		if i == 6 {
+			goto END
+		}
+		fmt.Println("i =", i)
+	}
+
+END:
+	fmt.Println("end")
+}
+
+// begin
+// i = 1
+// i = 2
+// i = 3
+// i = 4
+// i = 5
+// end

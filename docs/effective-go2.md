@@ -78,8 +78,8 @@ const (
 	Einval = iota
 )
 
-a := [...]string   {Enone: "no error", Eio: "Eio", Einval: "invalid argument"}
-s := []string      {Enone: "no error", Eio: "Eio", Einval: "invalid argument"}
+a := [...]string   {Enone: "no error", Eio: "Eio", Einval: "invalid argument"} // ...让编译器自动推断数组长度
+s := []string      {Enone: "no error", Eio: "Eio", Einval: "invalid argument"} // 新建slice
 m := map[int]string{Enone: "no error", Eio: "Eio", Einval: "invalid argument"}
 ```
 

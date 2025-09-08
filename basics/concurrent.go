@@ -64,9 +64,8 @@ func (w *Worker) selectProcessTimeout(c chan int) {
 	for {
 		select {
 		case c <- rand.Int():
-			// case <-time.After(time.Millisecond * 100): //返回一个 chan time.Time，100ms 后会向这个通道写入当前时间。
-			// 	fmt.Println("timed out")
-		case t := <-time.After(time.Millisecond * 100): // 接收After返回的值
+		case t := <-time.After(time.Millisecond * 100): // After返回一个t: chan time.Time，100ms 后会向这个通道写入当前时间。
+			// case <-time.After(time.Millisecond * 100) // 不用t接收
 			fmt.Println("timed out at", t)
 		}
 		time.Sleep(time.Millisecond * 50)

@@ -31,7 +31,19 @@ const (
 	Einval = iota
 )
 
-func mainNew() {
+func main() {
+	slice1 := make([]int, 10, 100)
+	fmt.Println(slice1) //[0 0 0 0 0 0 0 0 0 0]
+
+	slice2 := new([]int)
+	fmt.Println(slice2) // &[]  指向一个空（nil）slice 的指针”，而且这个 slice 是零值（nil slice），不能直接使用 append 等操作，除非先赋值
+	// 当 * 出现在一个指针变量前时，表示“取该指针指向的值”。
+	// slice2 = append(slice2, 1) //编译错误：cannot use slice2 (type *[]int) as []int
+	*slice2 = append(*slice2, 1)
+
+	slice3 := [...]int{}
+	fmt.Println(slice3) // []
+
 	// 方法1: 使用 new 创建 (返回指针)
 	c1 := new(Counter)
 	c1.Inc()
@@ -43,10 +55,16 @@ func mainNew() {
 	c2.Inc()
 	fmt.Println("c2 value:", c2.Value()) // 输出: c2 value: 2
 
-	a := [...]string{Enone: "no error", Eio: "Eio", Einval: "invalid argument"}
-	s := []string{Enone: "no error", Eio: "Eio", Einval: "invalid argument"}
+	a := [...]string{Enone: "no error", Eio: "Eio", Einval: "invalid argument"} // 数组，...编译时确定固定长度,
+	s := []string{Enone: "no error", Eio: "Eio", Einval: "invalid argument"}    // slice, 运行时动态确定长度，长度 = 最大索引 + 1
 	m := map[int]string{Enone: "no error", Eio: "Eio", Einval: "invalid argument"}
-	fmt.Println(a) //[no error Eio invalid argument]
-	fmt.Println(s) // [no error Eio invalid argument]
-	fmt.Println(m) //map[0:no error 1:Eio 2:invalid argument]
+	a2 := [...]string{
+		0: "zero",
+		2: "two",
+	}
+	// 等价于 [3]string{"zero", "", "two"}
+	fmt.Println(a[0]) //no error
+	fmt.Println(s)    // [no error Eio invalid argument]
+	fmt.Println(m)    //map[0:no error 1:Eio 2:invalid argument]
+	fmt.Println(a2)   // [zero  two]
 }
